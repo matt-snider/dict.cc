@@ -1,3 +1,4 @@
+import Text.Printf
 import Network.HTTP
 import Text.HTML.TagSoup
 
@@ -10,8 +11,8 @@ dictCC = do
             map f $ 
             partitions (~== "<td class=td7nl>") tags
     putStrLn "English                       German"
-    putStrLn "========                      ======="
-    mapM print trans
+    putStrLn "===========                   =========="
+    mapM_ (\(a, b) -> printf "%s                            %s\n" a b) trans
     where
         f :: [Tag String] -> String
         f =  unwords . 
