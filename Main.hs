@@ -6,19 +6,25 @@ import Text.HTML.TagSoup
 dictCC :: IO ()
 dictCC = do 
     tags <- parseTags <$> searchWord "bier"
-    let trans = 
-            tuplify $ 
+    let words = 
             map f $ 
             partitions (~== "<td class=td7nl>") tags
-    putStrLn "English                       German"
-    putStrLn "===========                   =========="
-    mapM_ (\(a, b) -> printf "%s                            %s\n" a b) trans
+    let wordLens = map length words
+    let maxEnLen = maximum $ oddElems wordLens
+    let maxDeLen = maximum $ evenElems wordLens
+    let fmtStr = getFmtStr maxEnLen maxDeLen
+    printf fmtStr "English" "German"
+    printf fmtStr "=========" "======="
+    mapM_ (\(a, b) -> printf fmtStr a b) $ tuplify words
     where
         f :: [Tag String] -> String
         f =  unwords . 
              map fromTagText . 
              filter isTagText . 
              takeWhile (~/= "</td>")
+        
+        getFmtStr :: Int -> Int -> String
+        getFmtStr left right = printf "%%-%ds %%%ds\n" left right
 
 
 searchWord :: String -> IO String
@@ -32,6 +38,17 @@ tuplify [] = []
 tuplify xs = 
     let (ys, zs) = splitAt 2 xs
     in (ys !! 0, ys !! 1) : tuplify zs
+
+
+oddElems :: [a] -> [a]
+oddElems [] = []
+oddElems (x:xs) = x : (oddElems $ drop 1 xs)
+
+
+evenElems :: [a] -> [a]
+evenElems [] = []
+evenElems (x:[]) = []
+evenElems (x:xs) = xs !! 0 : (evenElems $ drop 1 xs)
 
 
 main :: IO ()
