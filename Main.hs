@@ -18,13 +18,19 @@ dictCC = do
     mapM_ (\(a, b) -> printf fmtStr a b) $ tuplify words
     where
         f :: [Tag String] -> String
-        f =  unwords . 
+        f =  trimWhitespace .
+             unwords .
              map fromTagText . 
              filter isTagText . 
              takeWhile (~/= "</td>")
         
         getFmtStr :: Int -> Int -> String
         getFmtStr left right = printf "%%-%ds %%%ds\n" left right
+
+
+trimWhitespace :: String -> String
+trimWhitespace = unwords . words
+
 
 
 searchWord :: String -> IO String
