@@ -1,11 +1,13 @@
 import Text.Printf
 import Network.HTTP
 import Text.HTML.TagSoup
+import System.Environment
 
 
 dictCC :: IO ()
 dictCC = do 
-    tags <- parseTags <$> searchWord "bier"
+    args <- getArgs
+    tags <- parseTags <$> searchWord (args !! 0)
     let words = 
             map f $ 
             partitions (~== "<td class=td7nl>") tags
