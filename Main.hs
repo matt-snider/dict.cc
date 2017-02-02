@@ -17,7 +17,7 @@ dictCC = do
     let fmtStr = getFmtStr maxEnLen maxDeLen
     printf fmtStr "English" "German"
     printf fmtStr "=========" "======="
-    mapM_ (\(a, b) -> printf fmtStr a b) $ tuplify words
+    mapM_ (\(a, b) -> printf fmtStr a b) $ take 10 $ tuplify words
     where
         f :: [Tag String] -> String
         f =  trimWhitespace .
