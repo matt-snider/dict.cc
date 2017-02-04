@@ -1,9 +1,31 @@
-import Text.Printf
 import Network.HTTP
+import Text.Printf
 import Text.HTML.TagSoup
 import System.Environment
+import System.Console.GetOpt
+
+-- Flag definitions
+data Flag = From String | To String | IsNoun | IsVerb deriving Show
+
+options :: [OptDescr Flag]
+options =
+ [ Option ['f'] ["from"] (ReqArg From "FROM") "language to translate from"
+ , Option ['t'] ["to"]   (ReqArg To "TO")     "language to translate to"
+ , Option ['n'] ["noun"] (NoArg IsNoun)       "the word is a noun"
+ , Option ['v'] ["verb"] (NoArg IsVerb)       "the word is a verb"
+ ]
 
 
+getCliOpts :: IO ([Flag], [String])
+getCliOpts = do
+    args <- getArgs
+    case getOpt Permute options args of
+        (o, n, []) -> return (o, n)
+        (_,_,errs) -> ioError (userError (concat errs ++ usageInfo header options))
+    where header = "Usage: dict.cc [OPTION...] word"
+
+
+-- Main logic
 dictCC :: IO ()
 dictCC = do 
     args <- getArgs
