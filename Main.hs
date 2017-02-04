@@ -16,12 +16,15 @@ options =
  ]
 
 
-getCliOpts :: IO ([Flag], [String])
+getCliOpts :: IO ([Flag], String)
 getCliOpts = do
     args <- getArgs
     case getOpt Permute options args of
-        (o, n, []) -> return (o, n)
-        (_,_,errs) -> ioError (userError (concat errs ++ usageInfo header options))
+        (o, w:[], []) -> return (o, w)
+        (o, [], [])   -> ioError (userError ("\nprovide a word to lookup\n"))
+        (_, w:ws, []) -> ioError (userError ("\nprovide only a single word to lookup\n\t"
+                                              ++ (show $ length (w:ws)) ++ " found: " ++ show (w:ws)  ++ "\n"))
+        (_,_,errs)    -> ioError (userError ("\n" ++ concat errs ++ usageInfo header options ++ "\n"))
     where header = "Usage: dict.cc [OPTION...] word"
 
 
