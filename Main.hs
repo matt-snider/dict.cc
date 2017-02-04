@@ -28,13 +28,28 @@ getCliOpts = do
     where header = "Usage: dict.cc [OPTION...] word"
 
 
+getFrom :: [Flag] -> String
+getFrom [] = "en"
+getFrom (From f:_) = f
+getFrom (_:xs) = getFrom xs
+
+getTo :: [Flag] -> String
+getTo [] = "en"
+getTo (To f:_) = f
+getTo (_:xs) = getTo xs
+
+
 -- Main logic
 dictCC :: IO ()
-dictCC = do 
-    args <- getArgs
-    tags <- parseTags <$> searchWord (args !! 0)
-    let words = 
-            map f $ 
+dictCC = do
+    (options, word) <- getCliOpts
+
+    let from = getFrom options
+    let to = getTo options
+    tags <- parseTags <$> searchWord word from to
+
+    let words =
+            map f $
             partitions (~== "<td class=td7nl>") tags
     let wordLens = map length words
     let maxEnLen = maximum $ oddElems wordLens
@@ -47,10 +62,10 @@ dictCC = do
         f :: [Tag String] -> String
         f =  trimWhitespace .
              unwords .
-             map fromTagText . 
-             filter isTagText . 
+             map fromTagText .
+             filter isTagText .
              takeWhile (~/= "</td>")
-        
+
         getFmtStr :: Int -> Int -> String
         getFmtStr left right = printf "%%-%ds %%%ds\n" left right
 
@@ -60,15 +75,15 @@ trimWhitespace = unwords . words
 
 
 
-searchWord :: String -> IO String
-searchWord w = 
-    getResponseBody =<< simpleHTTP 
-        (getRequest $ "http://www.dict.cc/?s=" ++ w)
+searchWord :: String -> String -> String -> IO String
+searchWord word from to =
+    getResponseBody =<< simpleHTTP
+        (getRequest $ "http://" ++ from ++ "-" ++ to ++ ".dict.cc/?s=" ++ word)
 
 
 tuplify :: [a] -> [(a, a)]
 tuplify [] = []
-tuplify xs = 
+tuplify xs =
     let (ys, zs) = splitAt 2 xs
     in (ys !! 0, ys !! 1) : tuplify zs
 
