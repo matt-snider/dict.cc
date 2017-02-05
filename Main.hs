@@ -34,7 +34,7 @@ getFrom (From f:_) = f
 getFrom (_:xs) = getFrom xs
 
 getTo :: [Flag] -> String
-getTo [] = "en"
+getTo [] = "de"
 getTo (To f:_) = f
 getTo (_:xs) = getTo xs
 
