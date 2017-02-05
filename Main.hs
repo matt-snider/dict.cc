@@ -49,18 +49,27 @@ dictCC = do
     tags <- parseTags <$> searchWord word from to
 
     let words =
-            map f $
+            map extractWords $
             partitions (~== "<td class=td7nl>") tags
+    let headers =
+            take 2 $
+            filter ((>0) . length) $
+            map (takeWhile (/= '»')) $
+            map ( extractWords) $
+            partitions (~== "<td class=td2>") tags
+    let (lheader, rheader) = (headers !! 0, headers !! 1)
+
     let wordLens = map length words
     let maxEnLen = maximum $ oddElems wordLens
     let maxDeLen = maximum $ evenElems wordLens
     let fmtStr = getFmtStr maxEnLen maxDeLen
-    printf fmtStr "English" "German"
-    printf fmtStr "=========" "======="
+    printf fmtStr lheader rheader
+    printf fmtStr (getUnderline lheader) (getUnderline rheader)
     mapM_ (\(a, b) -> printf fmtStr a b) $ take 10 $ tuplify words
     where
-        f :: [Tag String] -> String
-        f =  trimWhitespace .
+        extractWords :: [Tag String] -> String
+        extractWords =
+             trimWhitespace .
              unwords .
              map fromTagText .
              filter isTagText .
@@ -68,6 +77,13 @@ dictCC = do
 
         getFmtStr :: Int -> Int -> String
         getFmtStr left right = printf "%%-%ds %%%ds\n" left right
+
+        getUnderline :: String -> String
+        getUnderline w =
+                concat $
+                take wordLength $
+                repeat "="
+            where wordLength = (length w) + 1
 
 
 trimWhitespace :: String -> String
