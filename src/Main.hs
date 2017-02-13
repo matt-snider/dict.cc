@@ -47,7 +47,6 @@ dictCC = do
     let from = getFrom options
     let to = getTo options
     tags <- parseTags <$> searchWord word from to
-
     let words =
             map extractWords $
             partitions (~== "<td class=td7nl>") tags
@@ -55,10 +54,9 @@ dictCC = do
             take 2 $
             filter ((>0) . length) $
             map (takeWhile (/= '»')) $
-            map ( extractWords) $
+            map extractWords $
             partitions (~== "<td class=td2>") tags
     let (lheader, rheader) = (headers !! 0, headers !! 1)
-
     let wordLens = map length words
     let maxEnLen = maximum $ oddElems wordLens
     let maxDeLen = maximum $ evenElems wordLens
