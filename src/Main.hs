@@ -92,7 +92,7 @@ trimWhitespace = unwords . words
 searchWord :: String -> String -> String -> IO String
 searchWord word from to =
     getResponseBody =<< simpleHTTP
-        (getRequest $ "http://" ++ from ++ "-" ++ to ++ ".dict.cc/?s=" ++ word)
+        (getRequest $ "http://" ++ from ++ "-" ++ to ++ ".dict.cc/?s=" ++ urlEncode word)
 
 
 tuplify :: [a] -> [(a, a)]
