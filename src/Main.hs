@@ -1,3 +1,4 @@
+import Data.ByteString.Char8 as BS (putStr, pack)
 import Network.HTTP
 import Text.Printf
 import Text.HTML.TagSoup
@@ -74,16 +75,16 @@ dictCC = do
 
 printResult :: [String] -> [String] -> IO ()
 printResult [] _ = do
-    putStrLn "No translations found."
+    Prelude.putStrLn "No translations found."
 printResult words headers = do
     let (lheader, rheader) = (headers !! 0, headers !! 1)
     let wordLens = map length words
     let maxEnLen = maximum $ oddElems wordLens
     let maxDeLen = maximum $ evenElems wordLens
     let fmtStr = getFmtStr maxEnLen maxDeLen
-    printf fmtStr lheader rheader
-    printf fmtStr (getUnderline lheader) (getUnderline rheader)
-    mapM_ (\(a, b) -> printf fmtStr a b) $ take 10 $ tuplify words
+    printUTF $ printf fmtStr lheader rheader
+    printUTF $ printf fmtStr (getUnderline lheader) (getUnderline rheader)
+    mapM_ (\(a, b) -> printUTF (printf fmtStr a b)) $ take 10 $ tuplify words
     where
         getFmtStr :: Int -> Int -> String
         getFmtStr left right = printf "%%-%ds %%%ds\n" left right
@@ -94,6 +95,9 @@ printResult words headers = do
                 take wordLength $
                 repeat "="
             where wordLength = (length w) + 1
+
+        printUTF :: String -> IO ()
+        printUTF = BS.putStr . BS.pack
 
 
 trimWhitespace :: String -> String
