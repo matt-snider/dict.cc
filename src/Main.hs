@@ -47,23 +47,7 @@ dictCC = do
     let from = getFrom options
     let to = getTo options
     tags <- parseTags <$> searchWord word from to
-    let words =
-            map extractWords $
-            partitions (~== "<td class=td7nl>") tags
-    let headers =
-            take 2 $
-            filter ((>0) . length) $
-            map (takeWhile (/= '»')) $
-            map extractWords $
-            partitions (~== "<td class=td2>") tags
-    let (lheader, rheader) = (headers !! 0, headers !! 1)
-    let wordLens = map length words
-    let maxEnLen = maximum $ oddElems wordLens
-    let maxDeLen = maximum $ evenElems wordLens
-    let fmtStr = getFmtStr maxEnLen maxDeLen
-    printf fmtStr lheader rheader
-    printf fmtStr (getUnderline lheader) (getUnderline rheader)
-    mapM_ (\(a, b) -> printf fmtStr a b) $ take 10 $ tuplify words
+    printResult (words tags) (headers tags)
     where
         extractWords :: [Tag String] -> String
         extractWords =
@@ -73,6 +57,34 @@ dictCC = do
              filter isTagText .
              takeWhile (~/= "</td>")
 
+        words :: [Tag String] -> [String]
+        words tags =
+            map extractWords $
+            partitions (~== "<td class=td7nl>") tags
+
+        headers :: [Tag String] -> [String]
+        headers tags =
+            take 2 $
+            filter ((>0) . length) $
+            map (takeWhile (/= '»')) $
+            map extractWords $
+            partitions (~== "<td class=td2>") tags
+
+
+
+printResult :: [String] -> [String] -> IO ()
+printResult [] _ = do
+    putStrLn "No translations found."
+printResult words headers = do
+    let (lheader, rheader) = (headers !! 0, headers !! 1)
+    let wordLens = map length words
+    let maxEnLen = maximum $ oddElems wordLens
+    let maxDeLen = maximum $ evenElems wordLens
+    let fmtStr = getFmtStr maxEnLen maxDeLen
+    printf fmtStr lheader rheader
+    printf fmtStr (getUnderline lheader) (getUnderline rheader)
+    mapM_ (\(a, b) -> printf fmtStr a b) $ take 10 $ tuplify words
+    where
         getFmtStr :: Int -> Int -> String
         getFmtStr left right = printf "%%-%ds %%%ds\n" left right
 
@@ -115,4 +127,3 @@ evenElems (x:xs) = xs !! 0 : (evenElems $ drop 1 xs)
 
 main :: IO ()
 main = dictCC
-
