@@ -12,8 +12,6 @@ options :: [OptDescr Flag]
 options =
  [ Option ['f'] ["from"] (ReqArg From "FROM") "language to translate from"
  , Option ['t'] ["to"]   (ReqArg To "TO")     "language to translate to"
- , Option ['n'] ["noun"] (NoArg IsNoun)       "the word is a noun"
- , Option ['v'] ["verb"] (NoArg IsVerb)       "the word is a verb"
  ]
 
 
