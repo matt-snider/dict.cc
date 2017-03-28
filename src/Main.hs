@@ -1,4 +1,5 @@
 import Data.ByteString.Char8 as BS (putStr, pack)
+import Data.List
 import Network.HTTP
 import Text.Printf
 import Text.HTML.TagSoup
@@ -6,12 +7,16 @@ import System.Environment
 import System.Console.GetOpt
 
 -- Flag definitions
-data Flag = From String | To String | IsNoun | IsVerb deriving Show
+data Flag = Reverse
+          | From String
+          | To String
+          deriving (Show, Eq)
 
 options :: [OptDescr Flag]
 options =
- [ Option ['f'] ["from"] (ReqArg From "FROM") "language to translate from"
- , Option ['t'] ["to"]   (ReqArg To "TO")     "language to translate to"
+ [ Option ['f'] ["from"]      (ReqArg From "FROM")     "language to translate from"
+ , Option ['t'] ["to"]        (ReqArg To "TO")         "language to translate to"
+ , Option ['r'] ["reverse"]   (NoArg Reverse)          "reverse the default from & to"
  ]
 
 
@@ -27,15 +32,40 @@ getCliOpts = do
     where header = "Usage: dict.cc [OPTION...] word"
 
 
+defaultTo = "de"
+defaultFrom = "en"
+
+isFrom :: Flag -> Bool
+isFrom (From _) = True
+isFrom _ = False
+
+
+isTo :: Flag -> Bool
+isTo (To _) = True
+isTo _ = False
+
+
 getFrom :: [Flag] -> String
-getFrom [] = "en"
-getFrom (From f:_) = f
-getFrom (_:xs) = getFrom xs
+getFrom opts =
+    if Reverse `elem` opts
+        then _getTo opts
+        else _getFrom opts
+
+_getFrom opts =
+    case find (isFrom) opts of
+        Nothing -> defaultFrom
+        Just (From f) -> f
 
 getTo :: [Flag] -> String
-getTo [] = "de"
-getTo (To f:_) = f
-getTo (_:xs) = getTo xs
+getTo opts =
+    if Reverse `elem` opts
+        then _getFrom opts
+        else _getTo opts
+
+_getTo opts =
+    case find (isTo) opts of
+        Nothing -> defaultTo
+        Just (To t) -> t
 
 
 -- Main logic
