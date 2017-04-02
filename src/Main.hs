@@ -8,6 +8,7 @@ import qualified Data.ByteString.Char8 as BS (putStr, pack)
 
 -- Flag definitions
 data Flag = Reverse
+          | Limit String
           | From String
           | To String
           deriving (Show, Eq)
@@ -16,6 +17,7 @@ options :: [OptDescr Flag]
 options =
  [ Option ['f'] ["from"]      (ReqArg From "FROM")     "language to translate from"
  , Option ['t'] ["to"]        (ReqArg To "TO")         "language to translate to"
+ , Option ['l'] ["limit"]     (ReqArg Limit "LIMIT")   "limit the number of results"
  , Option ['r'] ["reverse"]   (NoArg Reverse)          "reverse the default from & to"
  ]
 
@@ -34,6 +36,7 @@ getCliOpts = do
 
 defaultTo = "de"
 defaultFrom = "en"
+defaultLimit = 0
 
 isFrom :: Flag -> Bool
 isFrom (From _) = True
@@ -43,6 +46,10 @@ isFrom _ = False
 isTo :: Flag -> Bool
 isTo (To _) = True
 isTo _ = False
+
+isLimit :: Flag -> Bool
+isLimit (Limit _) = True
+isLimit _ = False
 
 
 getFrom :: [Flag] -> String
@@ -67,6 +74,12 @@ _getTo opts =
         Nothing -> defaultTo
         Just (To t) -> t
 
+getLimit :: [Flag] -> Int
+getLimit opts =
+    case find isLimit opts of
+        Nothing -> defaultLimit
+        Just (Limit l) -> read l :: Int
+
 
 -- Main logic
 dictCC :: IO ()
@@ -75,8 +88,9 @@ dictCC = do
 
     let from = getFrom options
     let to = getTo options
+    let limit = getLimit options
     tags <- parseTags <$> searchWord word from to
-    printResult (words tags) (headers tags)
+    printResult (words tags) (headers tags) limit
     where
         extractWords :: [Tag String] -> String
         extractWords =
@@ -101,10 +115,10 @@ dictCC = do
 
 
 
-printResult :: [String] -> [String] -> IO ()
-printResult [] _ = do
+printResult :: [String] -> [String] -> Int -> IO ()
+printResult [] _ _ = do
     putStrLn "No translations found."
-printResult words headers = do
+printResult words headers limit = do
     let (lheader, rheader) = (headers !! 0, headers !! 1)
     let wordLens = map length words
     let maxEnLen = maximum $ oddElems wordLens
@@ -112,8 +126,14 @@ printResult words headers = do
     let fmtStr = getFmtStr maxEnLen maxDeLen
     printUTF $ printf fmtStr lheader rheader
     printUTF $ printf fmtStr (getUnderline lheader) (getUnderline rheader)
-    mapM_ (\(a, b) -> printUTF (printf fmtStr a b)) $ take 10 $ tuplify words
+    mapM_ (\(a, b) -> printUTF (printf fmtStr a b)) $  limitResults limit $ tuplify words
     where
+        limitResults :: Int -> [(a, a)] -> [(a, a)]
+        limitResults limit words =
+                case limit of
+                  0 -> words
+                  x -> take x words
+
         getFmtStr :: Int -> Int -> String
         getFmtStr left right = printf "%%-%ds %%%ds\n" left right
 
