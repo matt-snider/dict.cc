@@ -1,10 +1,10 @@
-import Data.ByteString.Char8 as BS (putStr, pack)
 import Data.List
 import Network.HTTP
 import Text.Printf
 import Text.HTML.TagSoup
 import System.Environment
 import System.Console.GetOpt
+import qualified Data.ByteString.Char8 as BS (putStr, pack)
 
 -- Flag definitions
 data Flag = Reverse
@@ -103,7 +103,7 @@ dictCC = do
 
 printResult :: [String] -> [String] -> IO ()
 printResult [] _ = do
-    Prelude.putStrLn "No translations found."
+    putStrLn "No translations found."
 printResult words headers = do
     let (lheader, rheader) = (headers !! 0, headers !! 1)
     let wordLens = map length words
