@@ -1,4 +1,5 @@
 import Data.List
+import Data.Tuple (swap)
 import Network.HTTP
 import Text.Printf
 import Text.HTML.TagSoup
@@ -6,27 +7,44 @@ import System.Environment
 import System.Console.GetOpt
 import qualified Data.ByteString.Char8 as BS (putStr, pack)
 
--- Flag definitions
-data Flag = Reverse
-          | Limit String
-          | From String
-          | To String
-          deriving (Show, Eq)
+-- Option definitions and defaults
+data Options = Options
+    { optReverse  :: Bool
+    , optLimit    :: Int
+    , optFromLang :: String
+    , optToLang   :: String
+    } deriving Show
 
-options :: [OptDescr Flag]
+defaultOptions = Options
+    { optReverse  = False
+    , optLimit    = 0
+    , optFromLang = "en"
+    , optToLang   = "de"
+    }
+
+
+options :: [OptDescr (Options -> Options)]
 options =
- [ Option ['f'] ["from"]      (ReqArg From "FROM")     "language to translate from"
- , Option ['t'] ["to"]        (ReqArg To "TO")         "language to translate to"
- , Option ['l'] ["limit"]     (ReqArg Limit "LIMIT")   "limit the number of results"
- , Option ['r'] ["reverse"]   (NoArg Reverse)          "reverse the default from & to"
+ [ Option ['f'] ["from"]
+    (ReqArg (\f opts -> opts { optFromLang = f }) "FROM")
+    "language to translate from"
+ , Option ['t'] ["to"]
+    (ReqArg (\t opts -> opts { optToLang = t }) "TO")
+    "language to translate to"
+ , Option ['l'] ["limit"]
+    (ReqArg (\l opts -> opts { optLimit = read l }) "LIMIT")
+    "limit the number of results"
+ , Option ['r'] ["reverse"]
+    (NoArg (\opts -> opts { optReverse = True }))
+    "reverse the default from & to"
  ]
 
 
-getCliOpts :: IO ([Flag], String)
+getCliOpts :: IO (Options, String)
 getCliOpts = do
     args <- getArgs
     case getOpt Permute options args of
-        (o, w:[], []) -> return (o, w)
+        (o, w:[], []) -> return (foldl (flip id) defaultOptions o, w)
         (o, [], [])   -> ioError (userError ("\nprovide a word to lookup\n"))
         (_, w:ws, []) -> ioError (userError ("\nprovide only a single word to lookup\n\t"
                                               ++ (show $ length (w:ws)) ++ " found: " ++ show (w:ws)  ++ "\n"))
@@ -34,63 +52,16 @@ getCliOpts = do
     where header = "Usage: dict.cc [OPTION...] word"
 
 
-defaultTo = "de"
-defaultFrom = "en"
-defaultLimit = 0
-
-isFrom :: Flag -> Bool
-isFrom (From _) = True
-isFrom _ = False
-
-
-isTo :: Flag -> Bool
-isTo (To _) = True
-isTo _ = False
-
-isLimit :: Flag -> Bool
-isLimit (Limit _) = True
-isLimit _ = False
-
-
-getFrom :: [Flag] -> String
-getFrom opts =
-    if Reverse `elem` opts
-        then _getTo opts
-        else _getFrom opts
-
-_getFrom opts =
-    case find (isFrom) opts of
-        Nothing -> defaultFrom
-        Just (From f) -> f
-
-getTo :: [Flag] -> String
-getTo opts =
-    if Reverse `elem` opts
-        then _getFrom opts
-        else _getTo opts
-
-_getTo opts =
-    case find (isTo) opts of
-        Nothing -> defaultTo
-        Just (To t) -> t
-
-getLimit :: [Flag] -> Int
-getLimit opts =
-    case find isLimit opts of
-        Nothing -> defaultLimit
-        Just (Limit l) -> read l :: Int
-
-
 -- Main logic
 dictCC :: IO ()
 dictCC = do
     (options, word) <- getCliOpts
-
-    let from = getFrom options
-    let to = getTo options
-    let limit = getLimit options
+    let langs = (optFromLang options, optToLang options)
+    let (from, to) = if optReverse options
+            then swap langs
+            else langs
     tags <- parseTags <$> searchWord word from to
-    printResult (words tags) (headers tags) limit
+    printResult (words tags) (headers tags) (optLimit options)
     where
         extractWords :: [Tag String] -> String
         extractWords =
