@@ -8,16 +8,23 @@ import qualified Data.ByteString.Char8 as BS (putStr, pack)
 import Options
 
 
+-- Main CLI entry point
+main :: IO ()
+main = do
+    (options, word) <- getCommand
+    (words, headers, limit) <- dictCC options word
+    printResults words headers limit
+
+
 -- Main logic
-dictCC :: IO ()
-dictCC = do
-    (options, word) <- getCliOpts
+dictCC :: Options -> String -> IO ([String], [String], Int)
+dictCC options word = do
     let langs = (optFromLang options, optToLang options)
     let (from, to) = if optReverse options
             then swap langs
             else langs
     tags <- parseTags <$> searchWord word from to
-    printResult (words tags) (headers tags) (optLimit options)
+    return ((words tags), (headers tags), (optLimit options))
     where
         extractWords :: [Tag String] -> String
         extractWords =
@@ -42,10 +49,10 @@ dictCC = do
 
 
 
-printResult :: [String] -> [String] -> Int -> IO ()
-printResult [] _ _ = do
+printResults :: [String] -> [String] -> Int -> IO ()
+printResults [] _ _ = do
     putStrLn "No translations found."
-printResult words headers limit = do
+printResults words headers limit = do
     let (lheader, rheader) = (headers !! 0, headers !! 1)
     let wordLens = map length words
     let maxEnLen = maximum $ oddElems wordLens
@@ -102,7 +109,3 @@ evenElems :: [a] -> [a]
 evenElems [] = []
 evenElems (x:[]) = []
 evenElems (x:xs) = xs !! 0 : (evenElems $ drop 1 xs)
-
-
-main :: IO ()
-main = dictCC

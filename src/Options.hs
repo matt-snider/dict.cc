@@ -1,7 +1,7 @@
 module Options
     (
       Options(..)
-    , getCliOpts
+    , getCommand
     ) where
 
 import System.Console.GetOpt
@@ -42,8 +42,8 @@ options =
  ]
 
 
-getCliOpts :: IO (Options, String)
-getCliOpts = do
+getCommand :: IO (Options, String)
+getCommand = do
     args <- getArgs
     case getOpt Permute options args of
         (o, w:[], []) -> return (foldl (flip id) defaultOptions o, w)
