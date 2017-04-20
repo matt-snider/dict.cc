@@ -28,18 +28,14 @@ printResults [] _ _ = do
     putStrLn "No translations found."
 printResults trans headers limit = do
     let (lheader, rheader) = (headers !! 0, headers !! 1)
-    let wordLens = map length $ flatten trans
-    let maxEnLen = maximum $ oddElems wordLens
-    let maxDeLen = maximum $ evenElems wordLens
-    let fmtStr = getFmtStr maxEnLen maxDeLen
+    let maxFromLen = maximum $ map (length . source) trans
+    let maxToLen = maximum $ map (length . target) trans
+    let fmtStr = getFmtStr maxFromLen maxToLen
+
     printUTF $ printf fmtStr lheader rheader
     printUTF $ printf fmtStr (getUnderline lheader) (getUnderline rheader)
     mapM_ (\t -> printUTF (printf fmtStr (source t) (target t))) $  limitResults limit $ trans
     where
-        flatten :: [Translation] -> [String]
-        flatten [] = []
-        flatten ((Translation x y):xs) = x : y : flatten xs
-
         limitResults :: Int -> [a] -> [a]
         limitResults limit xs =
                 case limit of
@@ -58,24 +54,3 @@ printResults trans headers limit = do
 
         printUTF :: String -> IO ()
         printUTF = BS.putStr . BS.pack
-
-
-
-
-
-tuplify :: [a] -> [(a, a)]
-tuplify [] = []
-tuplify xs =
-    let (ys, zs) = splitAt 2 xs
-    in (ys !! 0, ys !! 1) : tuplify zs
-
-
-oddElems :: [a] -> [a]
-oddElems [] = []
-oddElems (x:xs) = x : (oddElems $ drop 1 xs)
-
-
-evenElems :: [a] -> [a]
-evenElems [] = []
-evenElems (x:[]) = []
-evenElems (x:xs) = xs !! 0 : (evenElems $ drop 1 xs)
