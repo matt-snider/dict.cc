@@ -1,10 +1,9 @@
 import Data.List
 import Data.Tuple (swap)
-import Network.HTTP
-import Text.Printf
-import Text.HTML.TagSoup
 import qualified Data.ByteString.Char8 as BS (putStr, pack)
+import Text.Printf
 
+import DictCC.DictCC
 import Options
 
 
@@ -12,61 +11,40 @@ import Options
 main :: IO ()
 main = do
     (options, word) <- getCommand
-    (words, headers, limit) <- dictCC options word
-    printResults words headers limit
-
-
--- Main logic
-dictCC :: Options -> String -> IO ([String], [String], Int)
-dictCC options word = do
     let langs = (optFromLang options, optToLang options)
     let (from, to) = if optReverse options
             then swap langs
             else langs
-    tags <- parseTags <$> searchWord word from to
-    return ((words tags), (headers tags), (optLimit options))
-    where
-        extractWords :: [Tag String] -> String
-        extractWords =
-             trimWhitespace .
-             unwords .
-             map fromTagText .
-             filter isTagText .
-             takeWhile (~/= "</td>")
-
-        words :: [Tag String] -> [String]
-        words tags =
-            map extractWords $
-            partitions (~== "<td class=td7nl>") tags
-
-        headers :: [Tag String] -> [String]
-        headers tags =
-            take 2 $
-            filter ((>0) . length) $
-            map (takeWhile (/= '»')) $
-            map extractWords $
-            partitions (~== "<td class=td2>") tags
+    results <- dictCC from to word
+    printResults results [from, to] (optLimit options)
 
 
+-- Output logic
+type Header = String
+type Limit = Int
 
-printResults :: [String] -> [String] -> Int -> IO ()
+printResults :: [Translation] -> [Header] -> Limit  -> IO ()
 printResults [] _ _ = do
     putStrLn "No translations found."
-printResults words headers limit = do
+printResults trans headers limit = do
     let (lheader, rheader) = (headers !! 0, headers !! 1)
-    let wordLens = map length words
+    let wordLens = map length $ flatten trans
     let maxEnLen = maximum $ oddElems wordLens
     let maxDeLen = maximum $ evenElems wordLens
     let fmtStr = getFmtStr maxEnLen maxDeLen
     printUTF $ printf fmtStr lheader rheader
     printUTF $ printf fmtStr (getUnderline lheader) (getUnderline rheader)
-    mapM_ (\(a, b) -> printUTF (printf fmtStr a b)) $  limitResults limit $ tuplify words
+    mapM_ (\t -> printUTF (printf fmtStr (source t) (target t))) $  limitResults limit $ trans
     where
-        limitResults :: Int -> [(a, a)] -> [(a, a)]
-        limitResults limit words =
+        flatten :: [Translation] -> [String]
+        flatten [] = []
+        flatten ((Translation x y):xs) = x : y : flatten xs
+
+        limitResults :: Int -> [a] -> [a]
+        limitResults limit xs =
                 case limit of
-                  0 -> words
-                  x -> take x words
+                  0 -> xs
+                  x -> take x xs
 
         getFmtStr :: Int -> Int -> String
         getFmtStr left right = printf "%%-%ds %%%ds\n" left right
@@ -82,15 +60,7 @@ printResults words headers limit = do
         printUTF = BS.putStr . BS.pack
 
 
-trimWhitespace :: String -> String
-trimWhitespace = unwords . words
 
-
-
-searchWord :: String -> String -> String -> IO String
-searchWord word from to =
-    getResponseBody =<< simpleHTTP
-        (getRequest $ "http://" ++ from ++ "-" ++ to ++ ".dict.cc/?s=" ++ urlEncode word)
 
 
 tuplify :: [a] -> [(a, a)]
