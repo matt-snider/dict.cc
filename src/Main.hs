@@ -15,4 +15,4 @@ main = do
             then swap langs
             else langs
     results <- dictCC from to word
-    printResults results [from, to] (optLimit options)
+    printResults results (from, to) (optLimit options)
