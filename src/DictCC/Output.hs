@@ -37,8 +37,11 @@ printResults trans headers limit = do
 -- Print a translation
 printResult :: (ColumnWidth, ColumnWidth) -> Translation -> IO ()
 printResult (toLen, frLen)  (Translation from to vote) =
-            F.print "{} {}\n" (right frLen  ' ' (decodeUtf8 $ BS.pack from),
-                               left  toLen  ' ' (decodeUtf8 $ BS.pack to))
+            let votes = if vote == 0 then "" else " [" ++ show vote ++ " \10003]"
+            in  F.print "{} {}{}\n"
+                (right frLen ' ' (decodeUtf8 $ BS.pack from),
+                 left  (toLen - (length votes))' ' (decodeUtf8 $ BS.pack to),
+                 votes)
 
 
 -- Prints the headers and the underline taking
