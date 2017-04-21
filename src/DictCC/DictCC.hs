@@ -6,6 +6,7 @@ module DictCC.DictCC
 
 import Network.HTTP
 import Text.HTML.TagSoup
+import Text.Regex.Posix
 
 -- Types/Data
 type FromLang = String
@@ -15,6 +16,7 @@ type Lookup = String
 data Translation = Translation
         { source :: String
         , target :: String
+        , votes  :: Int
         }
 
 
@@ -28,7 +30,15 @@ dictCC from to word = do
     where
         translations :: [String] -> [Translation]
         translations [] = []
-        translations (x:y:xs) = Translation x y : translations xs
+        translations (x:y:xs) =
+            let (y', votes) = splitVotes y
+            in Translation x y' votes : translations xs
+
+        splitVotes :: String -> (String, Int)
+        splitVotes s =
+            case s =~~ "^([0-9]*) (.*)$" :: Maybe String of
+                Just m  -> (concat . tail . words $ m, read . head . words $ m)
+                Nothing -> (s, 0)
 
         toWords :: [Tag String] -> [String]
         toWords = map
