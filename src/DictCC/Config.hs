@@ -3,11 +3,13 @@
 module DictCC.Config
     (
       readConfig
+    , Config(..)
     ) where
 
 import Control.Exception (SomeException, try)
 import qualified Data.ByteString as BS
 import Data.ByteString (ByteString)
+import Data.Maybe (fromMaybe)
 import qualified Data.Yaml as Y
 import Data.Yaml (FromJSON(..), (.:))
 import System.Directory
@@ -17,14 +19,24 @@ import Options (Options(..))
 -- Config
 data Config = Config { defaultOptions :: Options } deriving (Show)
 
+defaultConfig :: Config
+defaultConfig = Config
+    { defaultOptions = Options
+        { optReverse  = False
+        , optLimit    = 0
+        , optFromLang = "en"
+        , optToLang   = "de"
+        }
+    }
+
 -- Read config yaml file
-readConfig :: IO (Maybe Config)
+readConfig :: IO (Config)
 readConfig = do
         path <- getXdgDirectory XdgConfig ".dict-cc"
         yaml <- try $ BS.readFile path :: IO (Either SomeException ByteString)
         return $ case yaml of
-            Right s  -> Y.decode s :: Maybe Config
-            Left exc -> Nothing
+            Right s  -> fromMaybe defaultConfig (Y.decode s)
+            Left exc -> defaultConfig
 
 
 instance FromJSON Config where

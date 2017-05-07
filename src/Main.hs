@@ -1,6 +1,7 @@
 import Data.List
 import Data.Tuple (swap)
 
+import DictCC.Config
 import DictCC.DictCC
 import DictCC.Output
 import Options
@@ -9,7 +10,8 @@ import Options
 -- Main CLI entry point
 main :: IO ()
 main = do
-    (options, word) <- getCommand
+    config <- readConfig
+    (options, word) <- getCliOpts $ defaultOptions config
     let langs = (optFromLang options, optToLang options)
     let (from, to) = if optReverse options
             then swap langs

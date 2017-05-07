@@ -1,7 +1,7 @@
 module Options
     (
       Options(..)
-    , getCommand
+    , getCliOpts
     ) where
 
 import System.Console.GetOpt
@@ -15,13 +15,6 @@ data Options = Options
     , optFromLang :: String
     , optToLang   :: String
     } deriving Show
-
-defaultOptions = Options
-    { optReverse  = False
-    , optLimit    = 0
-    , optFromLang = "en"
-    , optToLang   = "de"
-    }
 
 
 -- CLI stuff
@@ -42,8 +35,8 @@ options =
  ]
 
 
-getCommand :: IO (Options, String)
-getCommand = do
+getCliOpts :: Options -> IO (Options, String)
+getCliOpts defaultOptions = do
     args <- getArgs
     case getOpt Permute options args of
         (o, w:[], []) -> return (foldl (flip id) defaultOptions o, w)
