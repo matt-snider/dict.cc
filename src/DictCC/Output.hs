@@ -53,8 +53,8 @@ printHeaders (frHeader, toHeader) =
             frUnderline = underline $ length fr + 3
             toUnderline = underline $ length to + 3
         in  F.print "{} {}\n"
-                (right frLen ' ' fr,
-                 left  toLen ' ' to)
+                (right frLen ' ' (decodeUtf8 $ BS.pack fr),
+                 left  toLen ' ' (decodeUtf8 $ BS.pack to))
         >>  F.print "{} {}\n"
                 (right frLen ' ' frUnderline,
                  left  toLen ' ' toUnderline)

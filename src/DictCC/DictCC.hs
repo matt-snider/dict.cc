@@ -34,8 +34,14 @@ data Translation = Translation
 dictCC :: FromLang -> ToLang -> Lookup -> IO (Results)
 dictCC from to word = do
     html <- searchWord word from to
-    let trans = toTranslations (toWords (parseTags html))
-    return $ Results { translations = trans, toHeader = to, fromHeader = from }
+    let tags = parseTags html
+    let trans = toTranslations (toWords tags)
+    let headers = getHeaders tags
+    return $ Results
+        { translations = trans
+        , toHeader = fst headers
+        , fromHeader = snd headers
+        }
     where
         toTranslations :: [String] -> [Translation]
         toTranslations [] = []
@@ -48,6 +54,14 @@ dictCC from to word = do
             case s =~~ "^([0-9]*) (.*)$" :: Maybe String of
                 Just m  -> (concat . tail . words $ m, read . head . words $ m)
                 Nothing -> (s, 0)
+
+        getHeaders :: [Tag String] -> (String, String)
+        getHeaders tags =
+            let l = filter ((>0) . length) $
+                    map (takeWhile (/= '»')) $
+                    map extractWords $
+                    partitions (~== "<td class=td2>") tags
+            in (l !! 0, l !! 1)
 
         toWords :: [Tag String] -> [String]
         toWords = map
