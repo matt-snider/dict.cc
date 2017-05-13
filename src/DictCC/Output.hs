@@ -22,10 +22,11 @@ printResults :: [Translation] -> (Header, Header) -> Limit  -> IO ()
 printResults [] _ _ = putStrLn "No translations found."
 
 printResults trans headers limit = do
-    let maxFromLen = maximum $ map (length . source) trans
-    let maxToLen = maximum $ map (length . target) trans
+    let limitedTrans = limitResults limit $ trans
+    let maxFromLen = maximum $ map (length . source) limitedTrans
+    let maxToLen = maximum $ map (length . target) limitedTrans
     printHeaders ((fst headers, maxFromLen), (snd headers, maxToLen))
-    mapM_ (printResult (maxFromLen, maxToLen)) (limitResults limit $ trans)
+    mapM_ (printResult (maxFromLen, maxToLen)) (limitedTrans)
     where
         limitResults :: Int -> [a] -> [a]
         limitResults limit xs =
