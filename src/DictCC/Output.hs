@@ -18,14 +18,14 @@ type HeaderDescription = (Header, ColumnWidth)
 type Limit = Int
 
 
-printResults :: [Translation] -> (Header, Header) -> Limit  -> IO ()
-printResults [] _ _ = putStrLn "No translations found."
+printResults :: Results -> Limit  -> IO ()
+printResults (Results { translations = [] }) _ = putStrLn "No translations found."
 
-printResults trans headers limit = do
-    let limitedTrans = limitResults limit $ trans
+printResults results limit = do
+    let limitedTrans = limitResults limit $ translations results
     let maxFromLen = maximum $ map (length . source) limitedTrans
     let maxToLen = maximum $ map (length . target) limitedTrans
-    printHeaders ((fst headers, maxFromLen), (snd headers, maxToLen))
+    printHeaders ((fromHeader results, maxFromLen), (toHeader results, maxToLen))
     mapM_ (printResult (maxFromLen, maxToLen)) (limitedTrans)
     where
         limitResults :: Int -> [a] -> [a]

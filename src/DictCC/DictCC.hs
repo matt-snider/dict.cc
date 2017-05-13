@@ -1,6 +1,7 @@
 module DictCC.DictCC
     (
       Translation(..)
+    , Results(..)
     , dictCC
     ) where
 
@@ -13,6 +14,13 @@ type FromLang = String
 type ToLang = String
 type Lookup = String
 
+
+data Results = Results
+        { translations :: [Translation]
+        , fromHeader   :: String
+        , toHeader     :: String
+        }
+
 data Translation = Translation
         { source :: String
         , target :: String
@@ -23,16 +31,17 @@ data Translation = Translation
 -- dictCC: main program logic
 -- Takes a source language, destination language, and a word
 -- or phrase and returns a list of translations.
-dictCC :: FromLang -> ToLang -> Lookup -> IO ([Translation])
+dictCC :: FromLang -> ToLang -> Lookup -> IO (Results)
 dictCC from to word = do
     html <- searchWord word from to
-    return $ translations ( toWords ( parseTags html))
+    let trans = toTranslations (toWords (parseTags html))
+    return $ Results { translations = trans, toHeader = to, fromHeader = from }
     where
-        translations :: [String] -> [Translation]
-        translations [] = []
-        translations (x:y:xs) =
+        toTranslations :: [String] -> [Translation]
+        toTranslations [] = []
+        toTranslations (x:y:xs) =
             let (y', votes) = splitVotes y
-            in Translation x y' votes : translations xs
+            in Translation x y' votes : toTranslations xs
 
         splitVotes :: String -> (String, Int)
         splitVotes s =
