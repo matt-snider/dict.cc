@@ -37,11 +37,11 @@ dictCC from to word = do
     let tags = parseTags html
     let trans = toTranslations (toWords tags)
     let headers = getHeaders tags
-    return $ Results
+    return $ maybeReverse Results
         { translations = trans
-        , toHeader = fst headers
-        , fromHeader = snd headers
-        }
+        , fromHeader = fst headers
+        , toHeader = snd headers
+        } from to
     where
         toTranslations :: [String] -> [Translation]
         toTranslations [] = []
@@ -85,3 +85,27 @@ searchWord :: String -> String -> String -> IO String
 searchWord word from to =
     getResponseBody =<< simpleHTTP
         (getRequest $ "http://" ++ from ++ "-" ++ to ++ ".dict.cc/?s=" ++ urlEncode word)
+
+
+-- Note that dict-cc does not arrange columns based on the
+-- searched languages (from, to), but rather based on the
+-- reverse lexicographical order of their 2-letter codes.
+maybeReverse :: Results -> FromLang -> ToLang -> Results
+maybeReverse results from to
+    | order `elem` [LT] = doReverse results
+    | otherwise         = results
+    where
+        order = compare from to
+
+        doReverse :: Results -> Results
+        doReverse results = results
+            { fromHeader   = toHeader results
+            , toHeader     = fromHeader results
+            , translations = map flip $ translations results
+            }
+
+        flip :: Translation -> Translation
+        flip trans = trans
+            { source = target trans
+            , target = source trans
+            }
