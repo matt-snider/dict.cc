@@ -27,6 +27,8 @@ data Translation = Translation
         , votes  :: Int
         }
 
+defaultTranslation = Translation "" "" 0
+
 
 -- dictCC: main program logic
 -- Takes a source language, destination language, and a word
@@ -35,49 +37,35 @@ dictCC :: FromLang -> ToLang -> Lookup -> IO (Results)
 dictCC from to word = do
     html <- searchWord word from to
     let tags = parseTags html
-    let trans = toTranslations (toWords tags)
-    let headers = getHeaders tags
+    let headers = buildHeaders tags
+    let pairs = tuplify (toWords tags)
+    let trans = map (buildTranslation
+                     [ getVotes ])
+                     pairs
     return $ maybeReverse Results
         { translations = trans
         , fromHeader = fst headers
         , toHeader = snd headers
         } from to
     where
-        toTranslations :: [String] -> [Translation]
-        toTranslations [] = []
-        toTranslations (x:y:xs) =
-            let (y', votes) = splitVotes y
-            in Translation x y' votes : toTranslations xs
-
-        splitVotes :: String -> (String, Int)
-        splitVotes s =
-            case s =~~ "^([0-9]*) (.*)$" :: Maybe String of
-                Just m  -> (concat . tail . words $ m, read . head . words $ m)
-                Nothing -> (s, 0)
-
-        getHeaders :: [Tag String] -> (String, String)
-        getHeaders tags =
+        buildHeaders :: [Tag String] -> (String, String)
+        buildHeaders tags =
             let l = filter ((>0) . length) $
                     map (takeWhile (/= '»')) $
                     map extractWords $
                     partitions (~== "<td class=td2>") tags
             in (l !! 0, l !! 1)
 
-        toWords :: [Tag String] -> [String]
-        toWords = map
-            extractWords .
-            partitions (~== "<td class=td7nl>")
+        buildTranslation :: [(Translation -> Translation)] -> (String, String) -> Translation
+        buildTranslation ts (src, targ) =
+            foldl (flip id) (defaultTranslation { source = src, target = targ }) ts
 
-        extractWords :: [Tag String] -> String
-        extractWords =
-             trimWhitespace .
-             unwords .
-             map fromTagText .
-             filter isTagText .
-             takeWhile (~/= "</td>")
-
-        trimWhitespace :: String -> String
-        trimWhitespace = unwords . words
+        getVotes :: Translation -> Translation
+        getVotes t = case (target t) =~~ "^([0-9]*) (.*)$" :: Maybe String of
+                        Just m  -> t { votes = read . head . words $ m
+                                     , target = concat . tail . words $ m
+                                     }
+                        Nothing -> t
 
 
 -- Make an HTTP call and retrieve the resulting html page
@@ -109,3 +97,30 @@ maybeReverse results from to
             { source = target trans
             , target = source trans
             }
+
+
+-- Other util functions
+toWords :: [Tag String] -> [String]
+toWords = map
+    extractWords .
+    partitions (~== "<td class=td7nl>")
+
+
+extractWords :: [Tag String] -> String
+extractWords =
+        trimWhitespace .
+        unwords .
+        map fromTagText .
+        filter isTagText .
+        takeWhile (~/= "</td>")
+
+
+trimWhitespace :: String -> String
+trimWhitespace = unwords . words
+
+
+tuplify :: [a] -> [(a, a)]
+tuplify [] = []
+tuplify xs =
+    let (ys, zs) = splitAt 2 xs
+    in (ys !! 0, ys !! 1) : tuplify zs
