@@ -33,7 +33,7 @@ defaultTranslation = Translation "" "" 0
 -- dictCC: main program logic
 -- Takes a source language, destination language, and a word
 -- or phrase and returns a list of translations.
-dictCC :: FromLang -> ToLang -> Lookup -> IO (Results)
+dictCC :: FromLang -> ToLang -> Lookup -> IO Results
 dictCC from to word = do
     html <- searchWord word from to
     let tags = parseTags html
@@ -50,18 +50,17 @@ dictCC from to word = do
     where
         buildHeaders :: [Tag String] -> (String, String)
         buildHeaders tags =
-            let l = filter ((>0) . length) $
-                    map (takeWhile (/= '»')) $
-                    map extractWords $
+            let l = filter (not . null) $
+                    map (takeWhile (/= '»') . extractWords) $
                     partitions (~== "<td class=td2>") tags
-            in (l !! 0, l !! 1)
+            in (head l, l !! 1)
 
-        buildTranslation :: [(Translation -> Translation)] -> (String, String) -> Translation
+        buildTranslation :: [Translation -> Translation] -> (String, String) -> Translation
         buildTranslation ts (src, targ) =
             foldl (flip id) (defaultTranslation { source = src, target = targ }) ts
 
         getVotes :: Translation -> Translation
-        getVotes t = case (target t) =~~ "^([0-9]*) (.*)$" :: Maybe String of
+        getVotes t = case target t =~~ "^([0-9]*) (.*)$" :: Maybe String of
                         Just m  -> t { votes = read . head . words $ m
                                      , target = concat . tail . words $ m
                                      }
@@ -80,8 +79,8 @@ searchWord word from to =
 -- reverse lexicographical order of their 2-letter codes.
 maybeReverse :: Results -> FromLang -> ToLang -> Results
 maybeReverse results from to
-    | order `elem` [LT] = doReverse results
-    | otherwise         = results
+    | order == LT = doReverse results
+    | otherwise   = results
     where
         order = compare from to
 
@@ -123,4 +122,4 @@ tuplify :: [a] -> [(a, a)]
 tuplify [] = []
 tuplify xs =
     let (ys, zs) = splitAt 2 xs
-    in (ys !! 0, ys !! 1) : tuplify zs
+    in (head ys, ys !! 1) : tuplify zs
