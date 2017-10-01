@@ -5,9 +5,13 @@ module DictCC.DictCC
     , dictCC
     ) where
 
-import Network.HTTP
+import Network.HTTP.Base (urlEncode)
+import Network.HTTP.Simple
 import Text.HTML.TagSoup
 import Text.Regex.Posix
+import qualified Data.ByteString.Lazy.Char8 as Char8
+
+
 
 -- Types/Data
 type FromLang = String
@@ -70,8 +74,16 @@ dictCC from to word = do
 -- Make an HTTP call and retrieve the resulting html page
 searchWord :: String -> String -> String -> IO String
 searchWord word from to =
-    getResponseBody =<< simpleHTTP
-        (getRequest $ "http://" ++ from ++ "-" ++ to ++ ".dict.cc/?s=" ++ urlEncode word)
+    let
+        request = parseRequest_
+                $  "https://"
+                ++ from ++ "-" ++ to
+                ++ ".dict.cc/?s="
+                ++ urlEncode word
+    in
+        fmap
+            (Char8.unpack . getResponseBody)
+            (httpLBS request)
 
 
 -- Note that dict-cc does not arrange columns based on the
