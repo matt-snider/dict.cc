@@ -20,6 +20,26 @@ Spanisch                                   Deutsch
 ling. edit. diccionario {m}      94 Wörterbuch {n}
 ```
 
+To filter based on word type (e.g. noun or verb):
+```bash
+$ dict-cc --verb run
+Englisch                                                    Deutsch
+============                                             ===========
+to run                                               laufen [3148 ✓]
+to run                                               rennen [1494 ✓]
+to run sth. [manage, lead]                      etw. leiten [1108 ✓]
+# ...
+
+$ dict-cc --noun run
+Englisch                                                                               Deutsch
+============                                                                        ===========
+run                                                                            Lauf {m} [124 ✓]
+run [sequence, cycle]                                                          Ablauf{m} [37 ✓]
+cloth. run [in stockings, tights]                                          Laufmasche{f} [25 ✓]
+transp. travel run                                                              Fahrt{f} [23 ✓]
+# ...
+```
+
 ## Configuration
 Adding a YAML file `.dict-cc` at [`XDG_CONFIG_HOME`](https://wiki.archlinux.org/index.php/XDG_Base_Directory_support) (typically ~/.config) allows
 you to configure the default options for `--to`, `--from` and `--limit`.
