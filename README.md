@@ -5,19 +5,20 @@ A command line tool for accessing dict.cc written in Haskell.
 To look up German translations for an English word:
 ```bash
 $ dict-cc dictionary
-Englisch                                   Deutsch
-=========                                 ========
-ling. publ. dictionary         1275 Wörterbuch {n}
-dictionary                          66 Lexikon {n}
-dictionary                      41 Verzeichnis {n}
+Englisch                                                      Deutsch
+===========                                                ==========
+ling. publ. dictionary                        Wörterbuch {n} [1324 ✓]
+dictionary                                         Lexikon {n} [70 ✓]
+dictionary                        Diktionär {n} {m} [veraltet] [66 ✓]
 ```
 
 To choose the source and destination languages:
 ```bash
 $ dict-cc --from es --to de diccionario
-Spanisch                                   Deutsch
-=========                                 ========
-ling. edit. diccionario {m}      94 Wörterbuch {n}
+Spanisch                                             Deutsch
+===========                                       ==========
+ling. edit. diccionario {m}           Wörterbuch {n} [119 ✓]
+edu. loc. diccionario {m} de bolsillo  Taschenwörterbuch {n}
 ```
 
 To filter based on word type (e.g. noun or verb):
