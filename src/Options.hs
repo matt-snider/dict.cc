@@ -14,6 +14,8 @@ data Options = Options
     , optLimit    :: Int
     , optFromLang :: String
     , optToLang   :: String
+    , optIsNoun   :: Bool
+    , optIsVerb   :: Bool
     } deriving Show
 
 
@@ -32,6 +34,12 @@ options =
  , Option ['r'] ["reverse"]
     (NoArg (\opts -> opts { optReverse = True }))
     "reverse the default from & to"
+ , Option ['n'] ["noun"]
+    (NoArg (\opts -> opts { optIsNoun = True, optIsVerb = False }))
+    "only return results that are nouns"
+ , Option ['v'] ["verb"]
+    (NoArg (\opts -> opts { optIsVerb = True, optIsNoun = False }))
+    "only return results that are verbs"
  ]
 
 

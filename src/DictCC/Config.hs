@@ -26,6 +26,8 @@ defaultConfig = Config
         , optLimit    = 0
         , optFromLang = "en"
         , optToLang   = "de"
+        , optIsNoun   = False
+        , optIsVerb   = False
         }
     }
 
@@ -51,6 +53,8 @@ instance FromJSON Options where
         pure False <*>
         v .: "limit"   <*>
         v .: "from"    <*>
-        v .: "to"
+        v .: "to"      <*>
+        pure False     <*>
+        pure False
     parseJSON _ = fail "Expected Object for Config value"
 

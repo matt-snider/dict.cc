@@ -2,6 +2,7 @@ module DictCC.DictCC
     (
       Translation(..)
     , Results(..)
+    , Category(..)
     , dictCC
     ) where
 
