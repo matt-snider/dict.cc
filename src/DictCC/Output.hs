@@ -37,7 +37,7 @@ printResults results limit = do
 
 -- Print a translation
 printResult :: (ColumnWidth, ColumnWidth) -> Translation -> IO ()
-printResult (toLen, frLen)  (Translation from to vote) =
+printResult (toLen, frLen)  (Translation from to vote _) =
             let votes = if vote == 0 then "" else " [" ++ show vote ++ " \10003]"
             in  F.print "{} {}{}\n"
                 (right frLen ' ' (decodeUtf8 $ BS.pack from),
