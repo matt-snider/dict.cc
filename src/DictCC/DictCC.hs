@@ -5,6 +5,7 @@ module DictCC.DictCC
     , dictCC
     ) where
 
+import Data.List
 import Network.HTTP.Base (urlEncode)
 import Network.HTTP.Simple
 import Text.HTML.TagSoup
@@ -17,7 +18,7 @@ import qualified Data.ByteString.Lazy.Char8 as Char8
 type FromLang = String
 type ToLang = String
 type Lookup = String
-
+data Category = Verb | Noun | Other deriving Show
 
 data Results = Results
         { translations :: [Translation]
@@ -69,6 +70,38 @@ dictCC from to word = do
                                      , target = concat . tail . words $ m
                                      }
                         Nothing -> t
+
+
+-- View the list of translations as a list of groups
+-- where each group contains a header indicating what
+-- type of translations follow (e.g. Substantive, Verben, etc)
+parseHtml tags =
+    [ ( src
+      , dest
+      , votes
+      , getCategory (extractWords group)
+      )
+
+    | (group, results)
+        <- map (break $ isTagCloseName "td")
+        $ partitions (\t -> t ~== "<td class=bluebar>" || t ~== "<td  class=td6>") tags
+
+    , (src, dest, votes)
+        <- map withVotes $ tuplify $ toWords results
+    ]
+    where
+        withVotes :: (String, String) -> (String, String, Int)
+        withVotes t = case snd t =~~ "^([0-9]*) (.*)$" :: Maybe String of
+            Just m  ->
+                ( fst t
+                , concat . tail . words $ m
+                , read . head . words $ m
+                )
+            Nothing ->
+                ( fst t
+                , snd t
+                , 0
+                )
 
 
 -- Make an HTTP call and retrieve the resulting html page
@@ -135,3 +168,14 @@ tuplify [] = []
 tuplify xs =
     let (ys, zs) = splitAt 2 xs
     in (head ys, ys !! 1) : tuplify zs
+
+
+-- Word categories
+getCategory :: String -> Category
+getCategory s =
+    case lastWord s of
+        "Verben" -> Verb
+        "Substantive" -> Noun
+        _ -> Other
+    where
+        lastWord = last . words
