@@ -1,3 +1,5 @@
+{-# LANGUAGE NoOverloadedStrings #-}
+
 module DictCC.DictCC
     (
       Translation(..)
@@ -48,7 +50,8 @@ data Category
 -- or phrase and returns a list of translations.
 dictCC :: FromLang -> ToLang -> Lookup -> IO Results
 dictCC from to word = do
-    html <- searchWord word from to
+    -- html <- searchWord word from to
+    html <- readFile "dict-cc-static.html"
     let tags = parseTags html
     let headers = buildHeaders tags
     return $ maybeReverse Results

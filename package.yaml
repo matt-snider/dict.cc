@@ -29,21 +29,16 @@ ghc-options:
 - -Wincomplete-uni-patterns
 - -Wredundant-constraints
 
-default-extension:
+default-extensions:
 - ConstraintKinds
-- DataKinds
-- DeriveFunctor
 - FlexibleContexts
 - FlexibleInstances
 - FunctionalDependencies
-- GADTs
+- GeneralizedNewtypeDeriving
+- InstanceSigs
 - LambdaCase
 - MultiParamTypeClasses
-- RankNTypes
-- ScopedTypeVariables
-- TypeApplications
-- TypeOperators
-
+- OverloadedStrings
 
 dependencies:
   - base >= 4.9 && < 5
