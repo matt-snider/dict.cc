@@ -2,15 +2,12 @@ module Options
     (
       Options(..)
     , getCliOpts
+    , usage
     ) where
 
 import Control.Exception
 import System.Console.GetOpt
 import System.Environment
-
--- Version
-import Paths_dict_cc (version)
-import Data.Version (showVersion)
 
 -- Option definitions and defaults
 data Options =
@@ -57,22 +54,18 @@ options =
 
 -- Errors
 data CLIError = NoLookupProvided
-              | ShowCLIHelp
-              | ShowCLIVersion
 
 instance Exception CLIError
 
 instance Show CLIError where
-    show NoLookupProvided = withUsage "provide a word to lookup"
-    show ShowCLIHelp      = withUsage "help"
-    show ShowCLIVersion   = "version " ++ showVersion version
+    show NoLookupProvided = "provide a word to lookup\n" ++ usage
 
 
-withUsage :: String -> String
-withUsage msg = msg
-    ++ usageInfo "\n\nUsage: dict.cc [OPTION...] word\n" options
+usage :: String
+usage = usageInfo "Usage: dict.cc [OPTION...] word\n" options
 
 
+-- Option parsing
 getCliOpts :: Options -> IO (Options, String)
 getCliOpts defaultOptions = do
     args <- getArgs
@@ -81,13 +74,13 @@ getCliOpts defaultOptions = do
         (_, w:ws, []) -> throw NoLookupProvided
         (o, [], [])   ->
             if contains o ShowHelp then
-                throw ShowCLIHelp
+                return (ShowHelp, "")
             else if contains o ShowVersion then
-                throw ShowCLIVersion
+                return (ShowVersion, "")
             else
                 throw NoLookupProvided
 
-        (_,_,errs)    -> ioError (userError ("\n" ++ concat errs ++ withUsage "" ++ "\n"))
+        (_,_,errs)    -> ioError (userError ("\n" ++ concat errs ++ usage ++ "\n"))
     where
         contains :: [Options -> Options] -> Options -> Bool
         contains [] _ = False
