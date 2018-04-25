@@ -50,8 +50,7 @@ data Category
 -- or phrase and returns a list of translations.
 dictCC :: FromLang -> ToLang -> Lookup -> IO Results
 dictCC from to word = do
-    -- html <- searchWord word from to
-    html <- readFile "dict-cc-static.html"
+    html <- searchWord word from to
     let tags = parseTags html
     let headers = buildHeaders tags
     return $ maybeReverse Results
