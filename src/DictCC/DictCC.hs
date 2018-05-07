@@ -1,16 +1,20 @@
 {-# LANGUAGE NoOverloadedStrings #-}
 
 module DictCC.DictCC
-    (
-      Translation(..)
+    ( Translation(..)
     , Results(..)
     , Category(..)
     , dictCC
     ) where
 
+
+import Data.Char (isSpace)
+import Data.List
+import Data.Maybe (fromMaybe)
 import Network.HTTP.Base (urlEncode)
 import Network.HTTP.Simple
 import Text.HTML.TagSoup
+import Text.Read (readMaybe)
 import Text.Regex.Posix
 import qualified Data.ByteString.Lazy.Char8 as Char8
 
@@ -42,8 +46,14 @@ data Category
     deriving Show
 
 
+fromCategoryString :: String -> Category
+fromCategoryString "Verben"      = Verb
+fromCategoryString "Substantive" = Noun
+fromCategoryString _             = Other
+
+
 {---------------------
- - Main lookup logic -
+ - Main Entrypoint
  ---------------------}
 
 -- Takes a source language, destination language, and a word
@@ -83,49 +93,110 @@ searchWord word from to =
  - HTML Parsing -
  ----------------}
 
--- View the list of translations as a list of groups
--- where each group contains a header indicating what
--- type of translations follow (e.g. Substantive, Verben, etc)
 parseHtml :: [Tag String] -> [Translation]
 parseHtml tags =
     [ Translation
-        src
-        trg
-        votes
-        (getCategory $ extractWords group)
+        (parseTransLeft translationRow)
+        (parseTransRight translationRow)
+        (parseVotes translationRow)
+        (parseCategory sectionHeader)
 
-    | (group, results)
-        <- map (break $ isTagCloseName "td")
-        $ partitions (\t -> t ~== "<td class=bluebar>" || t ~== "<td  class=td6>") tags
+    -- Break up into sections by word class
+    | (sectionHeader, sectionContent) <-
+        map breakSection $ partitions isSectionBoundary tags
 
-    , (src, trg, votes)
-        <- map withVotes $ tuplify $ toWords results
+    , translationRow <-
+        partitions isTranslationRow sectionContent
     ]
+
+
+-- Translation rows
+-- Each translation is in a <tr id="trX"> where X are
+-- consecutive numbers counting up from 1.
+isTranslationRow :: Tag String -> Bool
+isTranslationRow t =
+    isTagOpenName "tr" t
+    && fromAttrib  "id" t =~ "tr[[:digit:]]" :: Bool
+
+
+isTranslationContent :: Tag String -> Bool
+isTranslationContent = (~== "<td class=td7nl>")
+
+
+parseTransLeft :: [Tag String] -> String
+parseTransLeft = innerText . left
     where
-        withVotes :: (String, String) -> (String, String, Int)
-        withVotes t = case snd t =~~ "^([0-9]*) (.*)$" :: Maybe String of
-            Just m  ->
-                ( fst t
-                , concat . tail . words $ m
-                , read . head . words $ m
-                )
-            Nothing ->
-                ( fst t
-                , snd t
-                , 0
-                )
+        left = head . partitions isTranslationContent
 
-        getCategory :: String -> Category
-        getCategory s =
-            case last . words $ s of
-                "Verben" -> Verb
-                "Substantive" -> Noun
-                _ -> Other
 
-        toWords :: [Tag String] -> [String]
-        toWords = map
-            extractWords .
-            partitions (~== "<td class=td7nl>")
+parseTransRight :: [Tag String] -> String
+parseTransRight = innerText . rightContent
+    where
+        rightContent = removeVotes . takeWhile (not . isTagCloseName "td") . right
+
+        removeVotes tags = case findIndex isVotesDiv tags of
+            Just x  -> drop (x + 2) tags
+            Nothing -> tags
+
+        right = last . partitions isTranslationContent
+
+
+-- Categories
+-- The translations are sectioned off according to
+-- word class (e.g. Noun, Verb, Other)
+isCategoryHeader :: Tag String -> Bool
+isCategoryHeader = (~== "<td class=td6>")
+
+
+isOtherHeader :: Tag String -> Bool
+isOtherHeader = (~== "<td class=bluebar>")
+
+
+isSectionBoundary :: Tag String -> Bool
+isSectionBoundary t = isCategoryHeader t || isOtherHeader t
+
+
+breakSection :: [Tag String] -> ([Tag String], [Tag String])
+breakSection = break isTdClose
+
+
+parseCategory :: [Tag String] -> Category
+parseCategory = maybe Other fromCategoryString . categoryContent
+    where
+        categoryContent = maybeLast . words . innerText . categoryTags
+
+        categoryTags = takeWhile (not . isTdClose) . dropWhile (not . isCategoryHeader)
+
+        maybeLast [] = Nothing
+        maybeLast xs = Just(last xs)
+
+
+-- Votes
+-- The number of votes, when presents, is contained
+-- in a <div> with float:right inside the 'target'
+-- of a translation
+isVotesDiv :: Tag String -> Bool
+isVotesDiv t =
+    isTagOpenName "div" t && isFloatRight t
+
+
+isFloatRight :: Tag String -> Bool
+isFloatRight t = fromAttrib "style" t =~ "float:[[:blank:]]?right" :: Bool
+
+
+parseVotes :: [Tag String] -> Int
+parseVotes t = fromMaybe 0 (readMaybe $ votesText t)
+    where
+        votesText = innerText . take 2 . dropWhile (not . isVotesDiv)
+
+
+extractWords :: [Tag String] -> String
+extractWords =
+        unwords .
+        map (trim . fromTagText) .
+        filter isTagText .
+        takeWhile (~/= "</td>")
+
 
 buildHeaders :: [Tag String] -> (String, String)
 buildHeaders tags =
@@ -133,6 +204,15 @@ buildHeaders tags =
             map (takeWhile (/= '»') . extractWords) $
             partitions (~== "<td class=td2>") tags
     in (head l, l !! 1)
+
+
+-- Helper methods
+isTdClose :: Tag String -> Bool
+isTdClose = isTagCloseName "td"
+
+
+trim :: String -> String
+trim = dropWhileEnd isSpace . dropWhile isSpace
 
 
 {-----------------
@@ -161,17 +241,6 @@ maybeReverse results from to
             { source = target trans
             , target = source trans
             }
-
-extractWords :: [Tag String] -> String
-extractWords =
-        trimWhitespace .
-        unwords .
-        map fromTagText .
-        filter isTagText .
-        takeWhile (~/= "</td>")
-
-    where
-        trimWhitespace = unwords . words
 
 tuplify :: [a] -> [(a, a)]
 tuplify [] = []

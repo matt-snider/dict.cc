@@ -3,8 +3,8 @@ module DictCC.Output
       printResults
     ) where
 
-import Data.Text.Encoding as T (decodeUtf8)
-import Data.ByteString.Char8 as BS (unpack, pack)
+import qualified Data.Text.Encoding as T
+import qualified Data.ByteString.Char8 as BS
 import Data.Text.Format as F
 
 import DictCC.DictCC
@@ -17,14 +17,14 @@ type Limit = Int
 
 
 printResults :: Results -> Limit  -> IO ()
-printResults (Results { translations = [] }) _ = putStrLn "No translations found."
+printResults Results{ translations = [] } _ = putStrLn "No translations found."
 
 printResults results limit = do
     let limitedTrans = limitResults limit $ translations results
     let maxFromLen = maximum $ map (length . source) limitedTrans
     let maxToLen = maximum $ map (length . target) limitedTrans
     printHeaders ((fromHeader results, maxFromLen), (toHeader results, maxToLen))
-    mapM_ (printResult (maxFromLen, maxToLen)) (limitedTrans)
+    mapM_ (printResult (maxFromLen, maxToLen)) limitedTrans
     where
         limitResults :: Int -> [a] -> [a]
         limitResults limit xs =
@@ -38,8 +38,8 @@ printResult :: (ColumnWidth, ColumnWidth) -> Translation -> IO ()
 printResult (toLen, frLen)  (Translation from to vote _) =
             let votes = if vote == 0 then "" else " [" ++ show vote ++ " \10003]"
             in  F.print "{} {}{}\n"
-                (right frLen ' ' (decodeUtf8 $ BS.pack from),
-                 left  (toLen - (length votes))' ' (decodeUtf8 $ BS.pack to),
+                (right frLen ' ' (T.decodeUtf8 $ BS.pack from),
+                 left  (toLen - (length votes))' ' (T.decodeUtf8 $ BS.pack to),
                  votes)
 
 
@@ -51,8 +51,8 @@ printHeaders (frHeader, toHeader) =
             frUnderline = underline $ length fr + 3
             toUnderline = underline $ length to + 3
         in  F.print "{} {}\n"
-                (right frLen ' ' (decodeUtf8 $ BS.pack fr),
-                 left  toLen ' ' (decodeUtf8 $ BS.pack to))
+                (right frLen ' ' (T.decodeUtf8 $ BS.pack fr),
+                 left  toLen ' ' (T.decodeUtf8 $ BS.pack to))
         >>  F.print "{} {}\n"
                 (right frLen ' ' frUnderline,
                  left  toLen ' ' toUnderline)
