@@ -1,17 +1,18 @@
 module DictCC.Output
-    (
-      printResults
+    ( printResults
     ) where
 
-import qualified Data.Text.Encoding as T
-import qualified Data.ByteString.Char8 as BS
+import Prelude hiding (length, maximum, replicate)
+import Data.Int
+import qualified Data.List as List
+import Data.Text.Lazy
 import Data.Text.Format as F
 
 import DictCC.DictCC
 
 
-type Header = String
-type ColumnWidth = Int
+type Header = Text
+type ColumnWidth = Int64
 type HeaderDescription = (Header, ColumnWidth)
 type Limit = Int
 
@@ -21,8 +22,8 @@ printResults Results{ translations = [] } _ = putStrLn "No translations found."
 
 printResults results limit = do
     let limitedTrans = limitResults limit $ translations results
-    let maxFromLen = maximum $ map (length . source) limitedTrans
-    let maxToLen = maximum $ map (length . target) limitedTrans
+    let maxFromLen = List.maximum $ List.map (length . source) limitedTrans
+    let maxToLen = List.maximum $ List.map (length . target) limitedTrans
     printHeaders ((fromHeader results, maxFromLen), (toHeader results, maxToLen))
     mapM_ (printResult (maxFromLen, maxToLen)) limitedTrans
     where
@@ -30,16 +31,16 @@ printResults results limit = do
         limitResults limit xs =
                 case limit of
                   0 -> xs
-                  x -> take x xs
+                  x -> List.take x xs
 
 
 -- Print a translation
 printResult :: (ColumnWidth, ColumnWidth) -> Translation -> IO ()
 printResult (toLen, frLen)  (Translation from to vote _) =
-            let votes = if vote == 0 then "" else " [" ++ show vote ++ " \10003]"
+            let votes = if vote == 0 then (pack "") else (pack $ " [" ++ show vote ++ " \10003]")
             in  F.print "{} {}{}\n"
-                (right frLen ' ' (T.decodeUtf8 $ BS.pack from),
-                 left  (toLen - (length votes))' ' (T.decodeUtf8 $ BS.pack to),
+                (justifyLeft frLen ' ' from,
+                 justifyRight  (toLen - length votes)' ' to,
                  votes)
 
 
@@ -51,13 +52,12 @@ printHeaders (frHeader, toHeader) =
             frUnderline = underline $ length fr + 3
             toUnderline = underline $ length to + 3
         in  F.print "{} {}\n"
-                (right frLen ' ' (T.decodeUtf8 $ BS.pack fr),
-                 left  toLen ' ' (T.decodeUtf8 $ BS.pack to))
+                (justifyLeft frLen ' ' fr,
+                 justifyRight  toLen ' ' to)
         >>  F.print "{} {}\n"
-                (right frLen ' ' frUnderline,
-                 left  toLen ' ' toUnderline)
+                (justifyLeft frLen ' ' frUnderline,
+                 justifyRight  toLen ' ' toUnderline)
 
 
 -- Creates a header underline of specified length
-underline :: Int -> String
-underline = flip take $ repeat '='
+underline = flip replicate "="

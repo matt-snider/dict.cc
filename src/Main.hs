@@ -1,3 +1,4 @@
+import Data.Text.Lazy (pack)
 import Data.Tuple (swap)
 
 import DictCC.Config
@@ -23,7 +24,7 @@ main = do
             let (from, to) = if optReverse options
                     then swap langs
                     else langs
-            results <- (filterTrans options) <$> dictCC from to word
+            results <- (filterTrans options) <$> dictCC (pack from) (pack to) (pack word)
             printResults results (optLimit options)
     where
         filterTrans :: Options -> Results -> Results

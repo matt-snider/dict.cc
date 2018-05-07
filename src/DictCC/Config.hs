@@ -30,7 +30,7 @@ defaultConfig = Config
     }
 
 -- Read config yaml file
-readConfig :: IO (Config)
+readConfig :: IO Config
 readConfig = do
         path <- getXdgDirectory XdgConfig ".dict-cc"
         yaml <- try $ BS.readFile path :: IO (Either SomeException ByteString)
